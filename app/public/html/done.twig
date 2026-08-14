@@ -1,49 +1,142 @@
 {% extends 'base.twig' %}
 
-{% block title %}Import finished{% endblock %}
+{% block title %}Import Completed{% endblock %}
 
 {% block content %}
-    <h1>Import finished</h1>
-
-    <p>{{ total_num_transactions }} transactions have been sent to Firefly III.</p>
-
-    <p>
-        You had to grant access to this importer using your TAN-mode.
-        To use this granted access on subsequent imports, you can use this persistence string.
-        It should be treated as a secret and can be used on the json configuration file.
-        <pre>{{ fints_persistence }}</pre>
-    </p>
-
-    {% if import_messages is not empty %}
-        <div class="alert alert-warning">
-            For {{ import_messages | length }} transactions, Firefly III reported some problems which are listed below. <br>
-            These transactions were most likely not imported.
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                Import Finished
+            </h2>
         </div>
-    {% endif %}
-    
-    <ul class="list-unstyled">
-        {% for message in import_messages %}
-            <li class="mb-3">
-                <div class="card">
-                    <div class="card-header">
-                        <strong>
-                            {% if message.transaction.getCreditDebit == 'debit' %}-{% endif %}{{ message.transaction.getAmount() }}&euro;
-                        </strong>
-                        {% if message.transaction.getCreditDebit == 'debit' %}to{% else %}from{% endif %}
-                        {{ message.transaction.getName() }}
-                    </div>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item">
-                            {{ message.transaction.getMainDescription() }}
-                        </li>
-                        {% for error in message.messages %}
-                            <li class="list-group-item alert-warning">{{ error }}</li>
-                        {% endfor %}
-                    </ul>
+        <div class="card-body">
+            <div class="mb-4">
+                <h3 class="h5 mb-3">
+                    <i class="bi bi-piggy-bank-fill text-success me-2"></i>
+                    {{ total_num_transactions }} transactions imported
+                </h3>
+                
+                <div class="alert alert-success" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>
+                    All transactions have been successfully sent to Firefly III.
                 </div>
-            </li>
-        {% endfor %}
-    </ul>
-    
-    <p><a href="/" class="btn btn-primary">Go back to start</a></p>
+            </div>
+
+            {% if fints_persistence %}
+                <div class="mb-4">
+                    <h5 class="h6 mb-3">
+                        <i class="bi bi-key-fill me-2"></i>
+                        Persistence String
+                    </h5>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" value="{{ fints_persistence }}" readonly id="persistenceString">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('persistenceString')">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Save this string for future use. It contains your encrypted credentials and can be reused in subsequent imports.
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if import_messages is not empty and import_messages|length > 0 %}
+                <div class="mb-4">
+                    <h5 class="h6 mb-3">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                        {{ import_messages|length }} Transactions with Issues
+                    </h5>
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        These transactions may not have been imported due to validation issues.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="accordion" id="importIssuesAccordion">
+                            {% for message in import_messages %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                        <button class="accordion-button {% if loop.first %}collapsed{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}" aria-expanded="false" aria-controls="collapse{{ loop.index }}">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>
+                                                        {% if message.transaction.getCreditDebit == 'debit' %}-{% endif %}{{ message.transaction.getAmount() }}&euro;
+                                                    </strong>
+                                                    from {{ message.transaction.getName() }}
+                                                </div>
+                                                <span class="badge bg-warning text-dark">{{ message.messages|length }} issue{{ message.messages|length > 1 ? 's' : '' }}</span>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading{{ loop.index }}" data-bs-parent="#importIssuesAccordion">
+                                        <div class="accordion-body">
+                                            <p><strong>Description:</strong> {{ message.transaction.getMainDescription() }}</p>
+                                            {% if message.transaction.getStructuredDescription().ABWA is defined %}
+                                                <p><strong>Reference:</strong> {{ message.transaction.getStructuredDescription()['ABWA'] }}</p>
+                                            {% endif %}
+                                            <div class="mb-3">
+                                                <h6 class="h6 mb-2">Issues:</h6>
+                                                <ul class="list-unstyled">
+                                                    {% for error in message.messages %}
+                                                        <li class="mb-2">
+                                                            <i class="bi bi-exclamation-circle text-warning me-1"></i>
+                                                            {{ error }}
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="d-grid gap-2">
+                <a href="/" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left-circle me-1"></i>
+                    Start New Import
+                </a>
+                <a href="https://github.com/firefly-iii-importer/fints-importer/issues" target="_blank" class="btn btn-outline-secondary">
+                    <i class="bi bi-bug me-1"></i>
+                    Report Issue
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Copy to clipboard function
+        window.copyToClipboard = function(elementId) {
+            const copyText = document.getElementById(elementId);
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            
+            try {
+                document.execCommand('copy');
+                // Show success feedback
+                const originalText = event.target.innerHTML;
+                event.target.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => {
+                    event.target.innerHTML = originalText;
+                }, 2000);
+            } catch (err) {
+                alert('Unable to copy text');
+            }
+        };
+        
+        // Auto focus on persistence string if present
+        const persistenceInput = document.getElementById('persistenceString');
+        if (persistenceInput && persistenceInput.value) {
+            persistenceInput.select();
+        }
+    });
+</script>
 {% endblock %}

@@ -2,47 +2,197 @@
 
 {% import 'macros.twig' as macros %}
 
-{% block title %}Your transactions{% endblock %}
+{% block title %}Review Transactions{% endblock %}
 
 {% block content %}
-    <h1>Your transactions</h1>
-
-    {% if skip_transaction_review %}
-        <p>Automatic skipping of the transaction review was requested in the configuration file.</p>
-        {{ macros.skip_form() }}
-    {% endif %}
-    
-    <p>The following transactions will be imported to Firefly III.</p>
-
-    <p>
-        Please be aware: In January 2026 the importer was updated.
-        Depending on your bank, transactions might now be imported in a slightly different format.
-        This may interfere with Firefly's duplicate detection and can lead to duplicate transactions in Firefly, if you have already imported transactions before the update.
-    </p>
-
-    <form name="next-form" action="." method="post">
-        <input type="hidden" name="step" value="{{ next_step }}">
-        <button type="submit" class="btn btn-primary">Import transactions to FireflyIII</button>
-    </form>
-
-    <ul class="list-unstyled">
-    {% for transaction in transactions %}
-    <li class="mt-3">
-        <div class="card">
-            <div class="card-header">
-                <strong>
-                    {% if transaction.getCreditDebit == 'debit' %}-{% endif %}{{ transaction.getAmount() }}&euro;
-                </strong>
-                {% if transaction.getCreditDebit == 'debit' %}to{% else %}from{% endif %}
-                {{ transaction.getName() }}
-            </div>
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                    <p>{{ transaction.getMainDescription() }}</p>
-                    {% if transaction.getStructuredDescription().ABWA is defined %} <p>{{ transaction.getStructuredDescription()['ABWA'] }}</p>{% endif %}
-                </li>
-            </ul>
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0">
+                <i class="bi bi-list-check me-2"></i>
+                Review Transactions
+            </h2>
         </div>
-    {% endfor %}
-    </ul>
+        <div class="card-body">
+            {% if skip_transaction_review %}
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Transaction review was skipped via configuration.
+                </div>
+                {{ macros.skip_form() }}
+            {% endif %}
+
+            <p class="text-muted mb-4">
+                Please review the following transactions before importing to Firefly III.
+                <br>
+                <small class="text-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Note: In January 2026 the importer was updated. Depending on your bank, 
+                    transactions might now be imported in a slightly different format. 
+                    This may interfere with Firefly's duplicate detection and can lead to 
+                    duplicate transactions if you have already imported transactions before the update.
+                </small>
+            </p>
+
+            <form name="next-form" action="." method="post" id="importForm">
+                <input type="hidden" name="step" value="{{ next_step }}">
+                
+                {% if transactions|length > 0 %}
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="h6 mb-0">
+                                <i class="bi bi-credit-card me-1"></i>
+                                {{ transactions|length }} Transaction{{ transactions|length > 1 ? 's' : '' }}
+                            </h5>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary" id="expandAllBtn" disabled>
+                                    <i class="bi bi-arrows-angle-expand me-1"></i>Expand All
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="collapseAllBtn" disabled>
+                                    <i class="bi bi-arrows-angle-contract me-1"></i>Collapse All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion" id="transactionsAccordion">
+                            {% for transaction in transactions %}
+                                <div class="accordion-item mb-2">
+                                    <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                        <button class="accordion-button {% if loop.first %}collapsed{% endif %}" 
+                                                type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#transaction{{ loop.index }}" 
+                                                aria-expanded="false" 
+                                                aria-controls="transaction{{ loop.index }}">
+                                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge {% if transaction.getCreditDebit == 'credit' %}bg-success{% else %}bg-danger{% endif %} me-2">
+                                                        {% if transaction.getCreditDebit == 'credit' %}
+                                                            <i class="bi bi-arrow-down-left"></i>
+                                                        {% else %}
+                                                            <i class="bi bi-arrow-up-right"></i>
+                                                        {% endif %}
+                                                    </span>
+                                                    <strong>
+                                                        {% if transaction.getCreditDebit == 'debit' %}-{% endif %}{{ transaction.getAmount() }}&euro;
+                                                    </strong>
+                                                    <span class="ms-2 text-muted">
+                                                        {% if transaction.getCreditDebit == 'debit' %}to{% else %}from{% endif %}
+                                                        {{ transaction.getName() }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-end">
+                                                    {% if transaction.getDate() %}
+                                                        <small class="text-muted">{{ transaction.getDate()|date('d.m.Y') }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="transaction{{ loop.index }}" 
+                                         class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
+                                         aria-labelledby="heading{{ loop.index }}" 
+                                         data-bs-parent="#transactionsAccordion">
+                                        <div class="accordion-body">
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <strong>Main Description:</strong>
+                                                    <p class="mb-2">{{ transaction.getMainDescription() }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    {% if transaction.getStructuredDescription().ABWA is defined %}
+                                                        <strong>Reference:</strong>
+                                                        <p class="mb-2">{{ transaction.getStructuredDescription()['ABWA'] }}</p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            {% if transaction.getApplicantName() %}
+                                                <div class="mb-2">
+                                                    <strong>Applicant:</strong>
+                                                    <p class="mb-2">{{ transaction.getApplicantName() }}</p>
+                                                </div>
+                                            {% endif %}
+                                            
+                                            {% if transaction.getPurpose() %}
+                                                <div class="mb-2">
+                                                    <strong>Purpose:</strong>
+                                                    <p class="mb-2">{{ transaction.getPurpose() }}</p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        No transactions found for the selected date range.
+                    </div>
+                {% endif %}
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success" id="importButton">
+                        <i class="bi bi-upload me-1"></i>
+                        Import to Firefly III
+                    </button>
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const accordion = document.getElementById('transactionsAccordion');
+        const expandAllBtn = document.getElementById('expandAllBtn');
+        const collapseAllBtn = document.getElementById('collapseAllBtn');
+        
+        if (accordion && expandAllBtn && collapseAllBtn) {
+            const buttons = accordion.querySelectorAll('.accordion-button');
+            
+            expandAllBtn.addEventListener('click', function() {
+                buttons.forEach(btn => {
+                    if (btn.getAttribute('aria-expanded') === 'false') {
+                        btn.click();
+                    }
+                });
+            });
+            
+            collapseAllBtn.addEventListener('click', function() {
+                buttons.forEach(btn => {
+                    if (btn.getAttribute('aria-expanded') === 'true') {
+                        btn.click();
+                    }
+                });
+            });
+            
+            // Enable buttons when accordion is ready
+            expandAllBtn.disabled = false;
+            collapseAllBtn.disabled = false;
+        }
+        
+        // Confirm import
+        const importForm = document.getElementById('importForm');
+        const importButton = document.getElementById('importButton');
+        
+        if (importForm && importButton) {
+            importForm.addEventListener('submit', function(e) {
+                if (!confirm('Import these transactions to Firefly III?')) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                importButton.disabled = true;
+                importButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Importing...';
+            });
+        }
+    });
+</script>
 {% endblock %}

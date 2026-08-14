@@ -1,31 +1,63 @@
 {% extends 'base.twig' %}
 
-{% block title %}Choose Tan Device{% endblock %}
-
-{% import 'macros.twig' as macros %}
+{% block title %}Choose TAN Device{% endblock %}
 
 {% block content %}
-    <h1>Choose a device for your tan method.</h1>
-
-    {% if auto_skip_form %}
-        <p>There is only one tan device available.</p>
-
-        {{ macros.skip_form() }}
-    {% endif %}
-    
-    <form name="next-form" action="." method="post">
-        <input type="hidden" name="step" value="{{ next_step }}">
-        <div class="form-group">
-            <label for="bank_2fa_device">Tan Device</label>
-            <select class="form-control" name="bank_2fa_device" id="bank_2fa_device" required>
-                {% for device in devices %}
-                    <option value="{{ device.getName() }}">
-                        {{ device.getName() }}
-                    </option>
-                {% endfor %}
-            </select>
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0">
+                <i class="bi bi-phone-portrait-fill me-2"></i>
+                Choose TAN Device
+            </h2>
         </div>
+        <div class="card-body">
+            {% if auto_skip_form %}
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Only one TAN device is available.
+                </div>
+                {{ macros.skip_form() }}
+            {% endif %}
 
-        <button type="submit" class="btn btn-primary">Collect statements from your bank</button>
-    </form>
+            <form name="next-form" action="." method="post" id="tanForm">
+                <input type="hidden" name="step" value="{{ next_step }}">
+                
+                <div class="mb-4">
+                    <h5 class="h6 mb-3">
+                        <i class="bi bi-devices me-2"></i>
+                        Available TAN Devices
+                    </h5>
+                    
+                    <div class="list-group mb-3">
+                        {% for device in devices %}
+                            <label class="list-group-item d-flex align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           name="bank_2fa_device" 
+                                           value="{{ device.getName() }}" 
+                                           id="device_{{ loop.index }}"
+                                           {% if loop.first %}checked{% endif %}>
+                                    <label class="form-check-label" for="device_{{ loop.index }}">
+                                        <strong>{{ device.getName() }}</strong>
+                                    </label>
+                                </div>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="form-text mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Select the TAN device you wish to use for authentication.
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-right-circle me-1"></i>
+                        Continue
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}

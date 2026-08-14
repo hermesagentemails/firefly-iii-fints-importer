@@ -1,0 +1,8 @@
+FROM node:18
+WORKDIR /home/node/app
+COPY package*.json .
+RUN npm install
+COPY . .
+ENV APP_PORT=8080
+CMD npm run dev
+EXPOSE $APP_PORT

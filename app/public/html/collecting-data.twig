@@ -1,116 +1,135 @@
 {% extends 'base.twig' %}
 
-{% block title %}Enter account data{% endblock %}
+{% block title %}Collecting Data{% endblock %}
 
 {% block content %}
-    <h1>Enter account data</h1>
-    <form action="." method="post">
-        <input type="hidden" name="step" value="{{ next_step }}">
-        <fieldset class="mt-3">
-            <legend>Bank Data</legend>
-	    {% if configuration.bank_url == "" %}
-            <div class="form-group">
-                <label for="bank_url">URL</label>
-                <input class="form-control" id="bank_url" name="bank_url" required style="font-family:monospace;">
-                <small class="form-text text-muted">
-                    URL to your banks FinTS api, e.g.
-                    <span class="text-monospace">https://banking-dkb.s-fints-pt-dkb.de/fints30</span><br>
-                    If you cannot find the correct URL for your bank, try out
-                    <a href="https://github.com/dr-duplo/python-fints-url">this tool</a>.<br>
-                    Do not add a trailing slash to the URL.
-                </small>
-            </div>
-	    {% endif %}
-	    {% if configuration.bank_code == "" %}
-            <div class="form-group">
-                <label for="bank_code">Bank-Code (BLZ)</label>
-                <input class="form-control" id="bank_code" name="bank_code" required style="font-family:monospace;">
-                <small class="form-text text-muted">
-                    E.g. <span class="text-monospace">12030000</span>
-                </small>
-            </div>
-	    {% endif %}
-            <div class="form-group">
-                <label for="bank_username">Username</label>
-                <input class="form-control" id="bank_username" name="bank_username" required value="{{ configuration.bank_username }}">
-            </div>
-            <div class="form-group">
-                <label for="bank_password">Password</label>
-                <input class="form-control" id="bank_password" name="bank_password" type="password" required>
-                <small class="form-text text-muted">This is NOT the PIN of your bank card!</small>
-            </div>
-            {% if configuration.bank_2fa == "" %}
-            <div class="form-group">
-                <label for="bank_2fa">Two-Factor Method</label>
-                <select class="form-control" id="bank_2fa" name="bank_2fa" required>
-		    <option value="900">iTAN (900)</option>
-                    <option value="901">mobileTAN (901)</option>
-                    <option value="902">photoTAN (902)</option>
-		    <option value="903">1822TAN+ (903)</option>
-		    <option value="904">appTAN (904)</option>
-		    <option value="910">chipTAN manuell (910)</option>
-                    <option value="911">chipTAN optisch (911)</option>
-                    <option value="912">chipTAN-USB (912)</option>
-                    <option value="913">chipTAN-QR (913)</option>
-                    <option value="920">smsTAN (920)</option>
-                    <option value="921">pushTAN (921)</option>                    
-                    <option value="922">photoTAN (922)</option>
-                    <option value="923">pushTAN 2.0 (923)</option>
-                    <option value="930">mobileTAN (930, for Postbank)</option>
-                    <option value="940">DKB-App (940)</option>
-                    <option value="942">mobileTAN (942)</option>
-                    <option value="944">SecureGoTAN (944)</option>
-                    <option value="946">SecureGo plus (946)</option>
-                    <option value="962">Smart-TAN plus manuell (962)</option>
-                    <option value="972">Smart-TAN plus optisch (972)</option>
-                    <option value="982">Smart-TAN photo (982)</option>
-                    <option value="994">Sparda chipTAN manuell (994)</option>
-                    <option value="995">Sparda chipTAN optisch (995)</option>
-                    <option value="997">Sparda Secure App (997)</option>
-                    <option value="NoPsd2TanMode">None (for ING-DiBa)</option>
-                </select>
-                <small class="form-text text-muted">Choose an option that you know works for your bank.</small>
-            </div>
-	    {% endif %}
-        </fieldset>
-	{% if configuration.firefly_access_token == "" %}
-        <fieldset class="mt-4">
-            <legend>Firefly III Data</legend>
-            <div class="form-group">
-                <label for="firefly_url">Firefly III URL</label>
-                <input class="form-control" id="firefly_url" name="firefly_url" required>
-                <small class="form-text text-muted">Input without a trailing <span class="text-monospace">/</span></small>
-            </div>
-            <div class="form-group">
-                <label for="firefly_access_token">Firefly III Personal Access Token</label>
-                <textarea class="form-control" id="firefly_access_token" name="firefly_access_token"
-                          required></textarea>
-            </div>
-        </fieldset>
-	{% endif %}
-    {% if configuration.description_regex_match == "" %}
-        <fieldset class="mt-4">
-            <legend>Regular Expression for Description Manipulation</legend>
-            <div class="form-group">
-                <label for="description_regex_match">Match RegEx</label>
-                <input class="form-control" id="description_regex_match" name="description_regex_match">
-                <small class="form-text text-muted">
-                    If the transaction description matches this RegEx, then it should be replaced by the next one.<br>
-                    Any valid <a href="https://www.php.net/manual/en/reference.pcre.pattern.syntax.php">PHP regex</a> will work.
-                </small>
-            </div>
-            <div class="form-group">
-                <label for="description_regex_replace">Replace RegEx</label>
-                <input class="form-control" id="description_regex_replace" name="description_regex_replace">
-                <small class="form-text text-muted">
-                    You probably want to use <a href="https://www.php.net/manual/en/regexp.reference.back-references.php">back references</a> here.
-                </small>
-            </div>
-        </fieldset>
-	{% endif %}
-	{% if data_collect_mode != "" %}
-	 <input type="hidden" id="data_collect_mode" name="data_collect_mode" value="{{ data_collect_mode }}"> 
-	{% endif %}
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0">
+                <i class="bi bi-arrow-down-circle-fill me-2"></i>
+                Collecting data from your bank
+            </h2>
+        </div>
+        <div class="card-body">
+            {% if configuration is not empty %}
+                <div class="mb-4">
+                    <h5 class="h6 mb-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Status
+                    </h5>
+                    <div class="bg-light p-3 rounded">
+                        <p class="mb-2"><strong>Bank:</strong> {{ configuration.bank_username }}</p>
+                        {% if configuration.bank_url %}
+                            <p class="mb-2"><strong>Bank URL:</strong> <code class="bg-white p-1 rounded">{{ configuration.bank_url }}</code></p>
+                        {% endif %}
+                        {% if configuration.account_iban %}
+                            <p class="mb-0"><strong>Account IBAN:</strong> <code class="bg-white p-1 rounded">{{ configuration.account_iban }}</code></p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if not results.empty %}
+                <div class="alert alert-success" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    Successfully retrieved account data!
+                </div>
+                
+                <div class="mb-4">
+                    <h5 class="h6 mb-2">
+                        <i class="bi bi-piggy-bank-fill me-1"></i>
+                        Accounts Found
+                    </h5>
+                    <div class="list-group">
+                        {% for index, account in accounts %}
+                            <a href="#" class="list-group-item list-group-item-action {% if loop.first %}active{% endif %}" data-index="{{ index }}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ account.subAccount }}</h6>
+                                    <small class="text-muted">{{ account.accountNumber }}</small>
+                                </div>
+                                <p class="mb-1">
+                                    {% if account.iban %}<strong>IBAN:</strong> {{ account.iban }}<br>{% endif %}
+                                    {% if account.bic %}<strong>BIC:</strong> {{ account.bic }}<br>{% endif %}
+                                    <small>Balance: {{ account.balance|default('0.00') }} {{ account.currency|default('EUR') }}</small>
+                                </p>
+                            </a>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="selected_account_index" id="selected_account_index" value="0">
+                </div>
+            {% endif %}
+
+            {% if configuration.account_iban == "" and accounts|length > 0 %}
+                <div class="mb-4">
+                    <h5 class="h6 mb-2">
+                        <i class="bi bi-list-check me-1"></i>
+                        Select Account
+                    </h5>
+                    <div class="mb-3">
+                        <div class="form-floating">
+                            <select class="form-select" id="account_select" aria-label="Account selection">
+                                {% for index, account in accounts %}
+                                    <option value="{{ index }}">
+                                        {% if account.iban %}{{ account.iban }} &mdash; {% endif %}
+                                        {{ account.subAccount }}, {{ account.accountNumber }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <label for="account_select">Choose your account</label>
+                        </div>
+                        <div class="form-text">
+                            Select the bank account you wish to import transactions from.
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <form name="next-form" action="." method="post" id="collectForm">
+                <input type="hidden" name="step" value="{{ next_step }}">
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        {% if configuration.account_iban == "" and accounts|length > 0 %}
+                            <i class="bi bi-check-circle me-1"></i>Continue to next step
+                        {% else %}
+                            <i class="bi bi-arrow-right-circle me-1"></i>Proceed
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle account selection
+        const accountSelect = document.getElementById('account_select');
+        const selectedAccountInput = document.getElementById('selected_account_index');
+        const collectForm = document.getElementById('collectForm');
+        
+        if (accountSelect && selectedAccountInput) {
+            accountSelect.addEventListener('change', function() {
+                selectedAccountInput.value = this.value;
+            });
+            
+            // Auto-select first account if exists
+            if (accountSelect.options.length > 0 && selectedAccountInput.value === '') {
+                accountSelect.value = 0;
+                selectedAccountInput.value = 0;
+            }
+        }
+        
+        // Form validation
+        collectForm.addEventListener('submit', function(e) {
+            const accountSelect = document.getElementById('account_select');
+            if (accountSelect && accountSelect.value === '' && 
+                document.querySelector('[name="data_collect_mode"]').value === 'createNewDataset') {
+                e.preventDefault();
+                alert('Please select an account or choose to create a new configuration');
+            }
+        });
+    });
+</script>
 {% endblock %}

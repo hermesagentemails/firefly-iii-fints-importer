@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  php-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - ./data:/data
+      - ./configurations:/app/configurations
+    environment:
+      - APP_PORT=8080
+    restart: unless-stopped
+
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile-node
+    ports:
+      - "8080:3000"
+    volumes:
+      - ./assets:/home/node/app/public
+      - ./node_modules:/home/node/app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev -- --port 3000 --host 0.0.0.0
+    restart: unless-stopped
+
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - php-backend
+      - frontend-dev
+    restart: unless-stopped
