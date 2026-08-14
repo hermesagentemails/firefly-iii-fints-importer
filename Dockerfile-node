@@ -1,6 +1,9 @@
 # Dockerfile-node - Fixed for Docker dev container
 FROM node:18.18.2-alpine
 
+# Install bash for better compatibility
+RUN apk add --no-cache bash
+
 # Set working directory
 WORKDIR /app
 
@@ -13,8 +16,23 @@ RUN npm install --legacy-peer-deps
 # Copy source files
 COPY . .
 
+# Create vite.config.js if it doesn't exist
+RUN if [ ! -f vite.config.js ]; then \
+    echo "import { defineConfig } from 'vite';" > vite.config.js && \
+    echo "" >> vite.config.js && \
+    echo "export default defineConfig({" >> vite.config.js && \
+    echo "  server: {" >> vite.config.js && \
+    echo "    host: '0.0.0.0'," >> vite.config.js && \
+    echo "    port: 3000" >> vite.config.js && \
+    echo "  }" >> vite.config.js && \
+    echo "});" >> vite.config.js; \
+    fi
+
+# Use bash shell for CMD
+SHELL ["/bin/bash", "-c"]
+
 # Expose port
 EXPOSE 3000
 
-# Start dev server on port 3000
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+# Start dev server - explicitly run vite directly
+CMD npm run dev
