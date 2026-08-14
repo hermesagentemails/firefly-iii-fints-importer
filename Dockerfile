@@ -1,17 +1,14 @@
-FROM php:8.4-alpine
-
-RUN apk add --no-cache git libxml2-dev
-
-RUN docker-php-ext-install xml dom && \
-     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
+# Build stage
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
 COPY . .
+RUN npm run build
 
-RUN rm -f /data/configurations/*
-
-RUN composer install --no-dev
-RUN composer clearcache
-
-EXPOSE 8080
-
-ENTRYPOINT [ "php", "-S", "0.0.0.0:8080", "/app/index.php" ]  
+# Production stage
+FROM nginx:1.21-alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
