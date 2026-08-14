@@ -1,16 +1,14 @@
-# Dockerfile-node - Fixed for Docker dev container
-FROM node:18.18.2-alpine
-
-# Install bash for better compatibility
-RUN apk add --no-cache bash
+# Dockerfile-node - Multi-stage build for modern frontend
+FROM node:18.18.2-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better caching
+# Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (both dependencies AND devDependencies)
+# Install ALL dependencies
+# Use --legacy-peer-deps to resolve esbuild version conflicts
 RUN npm install --legacy-peer-deps
 
 # Copy source files
@@ -28,11 +26,26 @@ RUN if [ ! -f vite.config.js ]; then \
     echo "});" >> vite.config.js; \
     fi
 
-# Use bash shell for CMD
-SHELL ["/bin/bash", "-c"]
+# Build for production
+RUN mkdir -p dist && cp -r app/public/html dist/ 2>/dev/null || true
+
+# Development stage
+FROM node:18.18.2-alpine AS dev
+
+# Set working directory
+WORKDIR /app
+
+# Copy all files including package.json
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+
+# Install all dependencies
+# Use --legacy-peer-deps to resolve esbuild version conflicts
+RUN npm install --legacy-peer-deps
 
 # Expose port
 EXPOSE 3000
 
-# Start dev server - explicitly run vite directly
+# Start dev server
 CMD npm run dev

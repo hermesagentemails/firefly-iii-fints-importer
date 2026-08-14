@@ -1,29 +1,23 @@
 import { defineConfig } from 'vite';
-import path from 'path';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  root: '.',
-  base: './',
+  plugins: [react()],
   server: {
     host: '0.0.0.0',
     port: 3000,
     strictPort: false,
-    hmr: true,
+    hmr: {
+      protocol: 'ws',
+      host: '0.0.0.0',
+      port: 3000
+    }
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true,
+    assetsDir: 'assets',
     rollupOptions: {
-      input: path.resolve(__dirname, 'public/index.html'),
-    },
-  },
-  resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
-  },
-  optimizeDeps: {
-    include: ['bootstrap', 'bootstrap-icons'],
-  },
-  ssr: {
-    noExternal: ['bootstrap'],
-  },
+      input: 'public/index.html'
+    }
+  }
 });

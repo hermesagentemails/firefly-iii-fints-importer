@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.2-apache AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -24,7 +24,8 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # Install Composer dependencies
-RUN composer install --no-interaction --no-plugins --no-scripts --prefer-dist
+RUN git config --global --add safe.directory /var/www/html \
+    && composer install --no-interaction --no-plugins --no-scripts --prefer-dist
 
 # Change ownership of our applications
 RUN chown -R www-data:www-data \
