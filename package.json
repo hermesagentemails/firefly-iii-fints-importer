@@ -1,10 +1,10 @@
 {
   "name": "firefly-iii-fints-importer",
   "version": "1.0.0",
-  "description": "Modern frontend rebuild for Firefly III FinTS Importer with Bootstrap 5, SCSS, and modern tooling",
+  "description": "Modern frontend rebuild for Firefly III FinTS Importer with Bootstrap 5, Vite dev workflow, and Docker setup",
   "private": true,
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 8080 --open",
+    "dev": "vite --host 0.0.0.0 --port 8080",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint assets/**/*.{js,scss} --fix",
