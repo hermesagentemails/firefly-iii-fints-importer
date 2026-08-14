@@ -1,67 +1,215 @@
 {% extends 'base.twig' %}
 
-{% block title %}Choose Configuration{% endblock %}
+{% block title %}Configuration Editor{% endblock %}
 
 {% block content %}
     <div class="card">
         <div class="card-header">
             <h2 class="h5 mb-0">
                 <i class="bi bi-gear-fill me-2"></i>
-                Enter account data
+                Configuration Settings
             </h2>
         </div>
         <div class="card-body">
-            {% if requested_config_file is not empty %}
-                <div class="alert alert-info" role="alert">
-                    <i class="bi bi-info-circle me-2"></i>
-                    A specific config file has been requested via URL parameter.
-                </div>
-                
-                {{ macros.skip_form() }}
-            {% endif %}
+            <div class="d-grid gap-2 mb-4">
+                <button type="button" class="btn btn-primary" onclick="loadConfigFiles()">
+                    <i class="bi bi-folder2-open me-1"></i>
+                    Load Configurations
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="showNewConfigForm()">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    New Configuration
+                </button>
+            </div>
 
-            {% if configuration is not empty %}
-                <div class="alert alert-warning" role="alert">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    Configuration already loaded: {{ configuration.name }}
+            <div id="configSelector" style="display: none;">
+                <div class="mb-4">
+                    <label for="configFileSelect" class="form-label">Select Configuration File</label>
+                    <select class="form-select" id="configFileSelect" onchange="loadConfig(this.value)">
+                        <option value="">Choose a configuration file...</option>
+                    </select>
                 </div>
-            {% endif %}
+            </div>
 
-            <form name="next-form" action="." method="post" id="configForm">
-                <input type="hidden" name="step" value="{{ next_step }}">
+            <form name="configForm" id="configForm" action="/save-config" method="post" style="display: none;">
+                <input type="hidden" id="configFilePath" name="config_file_path" value="">
                 
                 <div class="mb-4">
-                    <label for="data_collect_mode" class="form-label">
-                        <i class="bi bi-folder-fill me-1"></i>
-                        Configuration
-                    </label>
-                    <select class="form-select" id="data_collect_mode" name="data_collect_mode" required>
-                        {% if requested_config_file is empty %}
-                            {% for file in files %}
-                                <option value="{{ file }}">{{ file }}</option>
-                            {% endfor %}
-                            <option value="createNewDataset" class="text-end">
-                                <span>✨</span> Create new configuration
-                            </option>
-                        {% else %}
-                            <option value="{{ requested_config_file }}" selected>
-                                {{ requested_config_file }}
-                            </option>
-                        {% endif %}
-                    </select>
-                    {% if requested_config_file is empty %}
+                    <h5 class="h6 mb-3">
+                        <i class="bi bi-pencil-square me-2"></i>
+                        JSON Configuration Editor
+                    </h5>
+                    <div class="mb-3">
+                        <label for="configJsonInput" class="form-label">JSON Content</label>
+                        <textarea class="form-control font-monospace" id="configJsonInput" name="config_json" rows="20" onkeyup="validateJson()"></textarea>
                         <div class="form-text">
-                            Choose a method to configure the importer.
-                            You can either select a configuration file or create a new one.
+                            <i class="bi bi-info-circle me-1"></i>
+                            Edit the configuration as valid JSON. Valid JSON will be validated in real-time.
                         </div>
-                    {% endif %}
+                    </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-arrow-right-circle me-1"></i>
-                    Continue
-                </button>
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    The configuration file is stored in the <code>data/configurations</code> directory. Make sure to save your changes.
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary" id="saveConfigBtn" disabled>
+                        <i class="bi bi-save me-1"></i>
+                        Save Configuration
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="resetConfigForm()">
+                        <i class="bi bi-x-circle me-1"></i>
+                        Reset
+                    </button>
+                </div>
             </form>
+
+            <div id="loadingIndicator" class="text-center py-4" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading configuration...</p>
+            </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let allConfigFiles = [];
+    
+    function showLoading(show) {
+        const loading = document.getElementById('loadingIndicator');
+        loading.style.display = show ? 'block' : 'none';
+    }
+    
+    function validateJson() {
+        const jsonInput = document.getElementById('configJsonInput');
+        const saveBtn = document.getElementById('saveConfigBtn');
+        
+        try {
+            const json = JSON.parse(jsonInput.value);
+            saveBtn.disabled = false;
+            jsonInput.classList.remove('is-invalid');
+            jsonInput.classList.add('is-valid');
+            return true;
+        } catch (error) {
+            saveBtn.disabled = true;
+            jsonInput.classList.add('is-invalid');
+            jsonInput.classList.remove('is-valid');
+            return false;
+        }
+    }
+    
+    function loadConfigFiles() {
+        showLoading(true);
+        fetch('/api/config-files')
+            .then(response => response.json())
+            .then(data => {
+                allConfigFiles = data.files;
+                populateConfigSelector();
+                showLoading(false);
+            })
+            .catch(error => {
+                console.error('Error loading config files:', error);
+                showLoading(false);
+                alert('Error loading configuration files');
+            });
+    }
+    
+    function populateConfigSelector() {
+        const select = document.getElementById('configFileSelect');
+        select.innerHTML = '<option value="">Choose a configuration file...</option>';
+        
+        allConfigFiles.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file.path;
+            option.textContent = file.name;
+            select.appendChild(option);
+        });
+        
+        document.getElementById('configSelector').style.display = 'block';
+    }
+    
+    function loadConfig(filePath) {
+        if (!filePath) return;
+        
+        showLoading(true);
+        fetch(`/api/config/${encodeURIComponent(filePath)}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('configJsonInput').value = JSON.stringify(data.config, null, 2);
+                document.getElementById('configFilePath').value = filePath;
+                
+                document.getElementById('configForm').style.display = 'block';
+                showLoading(false);
+                validateJson();
+            })
+            .catch(error => {
+                console.error('Error loading config:', error);
+                showLoading(false);
+                alert('Error loading configuration');
+            });
+    }
+    
+    function showNewConfigForm() {
+        document.getElementById('configJsonInput').value = '{\n  "bank_url": "https://your-bank-url.de/fints30",\n  "bank_code": "12030000",\n  "bank_username": "your_username",\n  "bank_password": "your_password",\n  "bank_2fa": "900",\n  "firefly_url": "http://localhost:8080",\n  "firefly_access_token": "your_token",\n  "description_regex_match": "",\n  "description_regex_replace": "",\n  "debug": false\n}';
+        document.getElementById('configForm').style.display = 'block';
+        document.getElementById('configFilePath').value = 'data/configurations/new_config.json';
+        validateJson();
+    }
+    
+    function resetConfigForm() {
+        document.getElementById('configForm').reset();
+        document.getElementById('configJsonInput').value = '';
+        document.getElementById('configFilePath').value = '';
+        document.getElementById('configForm').style.display = 'none';
+        document.getElementById('configSelector').style.display = 'none';
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const configForm = document.getElementById('configForm');
+        if (configForm) {
+            configForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const saveBtn = document.getElementById('saveConfigBtn');
+                
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+                
+                fetch('/save-config', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Configuration saved successfully!');
+                        if (formData.get('config_file_path')) {
+                            loadConfig(formData.get('config_file_path'));
+                        }
+                    } else {
+                        alert('Error saving configuration: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving configuration');
+                })
+                .finally(() => {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="bi bi-save me-1"></i>Save Configuration';
+                });
+            });
+            
+            // Auto-validate on input
+            const jsonInput = document.getElementById('configJsonInput');
+            jsonInput.addEventListener('input', validateJson);
+        }
+    });
+</script>
 {% endblock %}
